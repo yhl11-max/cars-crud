@@ -4,8 +4,11 @@ import time
 
 import pytest
 import uvicorn
+from playwright.sync_api import sync_playwright
 
 from app import database, main
+
+EDGE_PATH = r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe"
 
 
 def _free_port() -> int:
@@ -37,3 +40,20 @@ def live_server(tmp_path, monkeypatch):
 
     server.should_exit = True
     thread.join(timeout=5)
+
+
+@pytest.fixture(scope="session")
+def browser_context():
+    with sync_playwright() as p:
+        browser = p.chromium.launch(executable_path=EDGE_PATH, headless=True)
+        context = browser.new_context()
+        yield context
+        context.close()
+        browser.close()
+
+
+@pytest.fixture
+def page(browser_context):
+    page = browser_context.new_page()
+    yield page
+    page.close()
