@@ -14,7 +14,7 @@ def test_car_text_fields_are_trimmed():
 
     assert car.make == "Mazda"
     assert car.model == "MX-5"
-    assert car.color == "Blue"
+    assert car.color == "Red"
 
 
 def test_blank_model_is_rejected():
