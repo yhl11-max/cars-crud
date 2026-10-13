@@ -1,4 +1,5 @@
 import socket
+import sys
 import threading
 import time
 
@@ -9,6 +10,15 @@ from playwright.sync_api import sync_playwright
 from app import database, main
 
 EDGE_PATH = r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe"
+
+
+def _browser_launch_kwargs() -> dict:
+    # Windows: use the locally installed Edge; other platforms (e.g. the Ubuntu
+    # GitHub Actions runner): let Playwright use its bundled Chromium.
+    kwargs: dict = {"headless": True}
+    if sys.platform == "win32":
+        kwargs["executable_path"] = EDGE_PATH
+    return kwargs
 
 
 def _free_port() -> int:
@@ -45,7 +55,7 @@ def live_server(tmp_path, monkeypatch):
 @pytest.fixture(scope="session")
 def browser_context():
     with sync_playwright() as p:
-        browser = p.chromium.launch(executable_path=EDGE_PATH, headless=True)
+        browser = p.chromium.launch(**_browser_launch_kwargs())
         context = browser.new_context()
         yield context
         context.close()
