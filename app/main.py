@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 
 from fastapi import FastAPI, Form
@@ -6,7 +7,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from app import database
 from app.schemas import CarInput
 
-DB_PATH = Path(__file__).resolve().parent.parent / "cars.db"
+DB_PATH = Path(os.environ.get("CARS_DB_PATH", Path(__file__).resolve().parent.parent / "cars.db"))
 
 app = FastAPI(title="Cars CRUD")
 database.initialize(DB_PATH)

@@ -3,9 +3,12 @@ name: Cars CRUD Tests
 on:
   pull_request:
     branches: [main]
+  push:
+    branches: [main]
 
 permissions:
   contents: read
+  packages: write
 
 jobs:
   tests:
@@ -36,3 +39,30 @@ jobs:
 
       - name: Run E2E tests
         run: python -m pytest tests/e2e -q
+
+  publish:
+    needs: tests
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v7
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push the image
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          push: true
+          tags: |
+            ghcr.io/yhl11-max/cars-crud:latest
+            ghcr.io/yhl11-max/cars-crud:${{ github.sha }}
