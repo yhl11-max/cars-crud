@@ -1,6 +1,14 @@
 from pydantic import BaseModel, field_validator, ValidationError
 
 
+class Car(BaseModel):
+    id: int
+    make: str
+    model: str
+    year: int
+    color: str
+
+
 class CarInput(BaseModel):
     make: str
     model: str
