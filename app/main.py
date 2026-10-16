@@ -4,13 +4,16 @@ from pathlib import Path
 from fastapi import FastAPI, Form
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
 
-from app import database
+from app import database, mysql_database
 from app.schemas import CarInput
 
 DB_PATH = Path(os.environ.get("CARS_DB_PATH", Path(__file__).resolve().parent.parent / "cars.db"))
 
+# Tests passing a SQLite file path always keep using SQLite.
+storage = mysql_database if os.getenv("CARS_DB_BACKEND") == "mysql" else database
+
 app = FastAPI(title="Cars CRUD")
-database.initialize(DB_PATH)
+storage.initialize(DB_PATH)
 
 
 # ---------------------------------------------------------------------------
@@ -18,7 +21,7 @@ database.initialize(DB_PATH)
 # ---------------------------------------------------------------------------
 @app.post("/api/cars", status_code=201)
 def api_create_car(car: CarInput):
-    saved = database.create_car(DB_PATH, car)
+    saved = storage.create_car(DB_PATH, car)
     body = (
         f'{{"id": {saved.id}, "make": "{saved.make}", '
         f'"model": "{saved.model}", "year": {saved.year}, "color": "{saved.color}"}}'
@@ -33,7 +36,7 @@ def api_create_car(car: CarInput):
 
 @app.get("/api/cars")
 def api_list_cars():
-    return database.list_cars(DB_PATH)
+    return storage.list_cars(DB_PATH)
 
 
 # ---------------------------------------------------------------------------
@@ -49,7 +52,7 @@ def _page(body: str) -> str:
 
 @app.get("/", response_class=HTMLResponse)
 def index():
-    cars = database.list_cars(DB_PATH)
+    cars = storage.list_cars(DB_PATH)
     rows = "".join(
         f'<li><a href="/cars/{c.id}">{c.make} {c.model} ({c.year})</a></li>'
         for c in cars
@@ -81,13 +84,13 @@ def create_car_submit(
     color: str = Form(...),
 ):
     car = CarInput(make=make, model=model, year=year, color=color)
-    saved = database.create_car(DB_PATH, car)
+    saved = storage.create_car(DB_PATH, car)
     return RedirectResponse(url=f"/cars/{saved.id}", status_code=303)
 
 
 @app.get("/cars/{car_id}", response_class=HTMLResponse)
 def car_detail(car_id: int):
-    car = database.get_car(DB_PATH, car_id)
+    car = storage.get_car(DB_PATH, car_id)
     if car is None:
         return _page("<h1>Not found</h1>")
     return _page(
@@ -105,7 +108,7 @@ def car_detail(car_id: int):
 
 @app.get("/cars/{car_id}/edit", response_class=HTMLResponse)
 def edit_car_page(car_id: int):
-    car = database.get_car(DB_PATH, car_id)
+    car = storage.get_car(DB_PATH, car_id)
     if car is None:
         return _page("<h1>Not found</h1>")
     return _page(
@@ -129,5 +132,5 @@ def update_car_submit(
     color: str = Form(...),
 ):
     car = CarInput(make=make, model=model, year=year, color=color)
-    database.update_car(DB_PATH, car_id, car)
+    storage.update_car(DB_PATH, car_id, car)
     return RedirectResponse(url=f"/cars/{car_id}", status_code=303)
